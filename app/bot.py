@@ -1,3 +1,4 @@
+from app.handlers import applications
 
 import asyncio, logging
 from aiogram import Bot, Dispatcher
@@ -14,6 +15,8 @@ async def main():
     dp = Dispatcher()
     dp.include_router(common.router)
     await on_startup()
+    dp.include_router(applications.router)
+
     await dp.start_polling(bot)
 if __name__ == "__main__":
     asyncio.run(main())
