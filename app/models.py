@@ -20,3 +20,20 @@ class Card(Base):
     type: Mapped[str] = mapped_column(String(16))
     title: Mapped[str] = mapped_column(String(128))
     text: Mapped[str] = mapped_column(String(4096))
+import enum
+from sqlalchemy import ForeignKey, Enum
+from sqlalchemy.orm import Mapped, mapped_column
+
+class AppStatus(enum.StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+class Application(Base):
+    __tablename__ = "applications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    card_id: Mapped[int] = mapped_column(ForeignKey("cards.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    text: Mapped[str] = mapped_column(String(1024))
+    status: Mapped[AppStatus] = mapped_column(Enum(AppStatus), default=AppStatus.PENDING)
