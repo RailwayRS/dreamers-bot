@@ -1,6 +1,8 @@
+# app/config.py
 from dataclasses import dataclass, field
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 @dataclass
@@ -14,4 +16,7 @@ class Settings:
     )
 
 settings = Settings()
+
+# Выводим значение переменной DATABASE_URL для проверки
+print(settings.database_url)  # Эта строка выводит URL базы данных в консоль
 
