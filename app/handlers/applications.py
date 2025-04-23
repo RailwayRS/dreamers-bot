@@ -2,13 +2,16 @@ from aiogram import Router, types, F
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from app.database import SessionLocal
 from app.models import User, Role, Task, Response
+from sqlalchemy.future import select
+
 router = Router()
 
 # Команда /start
 @router.message(F.text == "/start")
 async def cmd_start(msg: types.Message):
     async with SessionLocal() as db:
-        user = await db.get(User, msg.from_user.id)
+        result = await db.execute(select(User).filter_by(tg_id=msg.from_user.id))
+        user = result.scalars().first()
         if not user:
             # Если пользователя нет, предлагается выбрать роль
             markup = InlineKeyboardMarkup(row_width=1)
@@ -30,10 +33,13 @@ async def choose_role_executor(callback_query: types.CallbackQuery):
 
 async def set_user_role(callback_query: types.CallbackQuery, role: Role):
     async with SessionLocal() as db:
-        user = await db.get(User, callback_query.from_user.id)
+        result = await db.execute(select(User).filter_by(tg_id=callback_query.from_user.id))
+        user = result.scalars().first()
+
         if not user:
             # Если пользователя нет, создаём нового
-            db.add(User(tg_id=callback_query.from_user.id, role=role, balance=1))
+            user = User(tg_id=callback_query.from_user.id, role=role, balance=1)
+            db.add(user)
             await db.commit()
             await callback_query.message.answer(f"Регистрация завершена как {role.name.lower()}! Баланс: 1 монета")
         else:
@@ -44,7 +50,8 @@ async def set_user_role(callback_query: types.CallbackQuery, role: Role):
 @router.message(F.text == "/reset")
 async def reset_role(msg: types.Message):
     async with SessionLocal() as db:
-        user = await db.get(User, msg.from_user.id)
+        result = await db.execute(select(User).filter_by(tg_id=msg.from_user.id))
+        user = result.scalars().first()
         if user:
             markup = InlineKeyboardMarkup(row_width=1)
             reset_button = InlineKeyboardButton("Сбросить роль", callback_data="reset_role")
@@ -58,7 +65,8 @@ async def reset_role(msg: types.Message):
 async def reset_role_callback(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
     async with SessionLocal() as db:
-        user = await db.get(User, user_id)
+        result = await db.execute(select(User).filter_by(tg_id=user_id))
+        user = result.scalars().first()
         if user:
             # Сбрасываем роль
             user.role = None  # Очищаем роль
@@ -73,7 +81,8 @@ async def reset_role_callback(callback_query: types.CallbackQuery):
 @router.message(F.text == "/profile")
 async def cmd_profile(msg: types.Message):
     async with SessionLocal() as db:
-        user = await db.get(User, msg.from_user.id)
+        result = await db.execute(select(User).filter_by(tg_id=msg.from_user.id))
+        user = result.scalars().first()
         if user:
             role = user.role.name if user.role else "Не назначена"
             balance = user.balance
@@ -100,8 +109,8 @@ async def create_task(msg: types.Message):
 @router.message(F.text == "/tasks")
 async def list_tasks(msg: types.Message):
     async with SessionLocal() as db:
-        tasks = await db.execute(Task.select())
-        tasks_list = tasks.fetchall()
+        result = await db.execute(select(Task))
+        tasks_list = result.fetchall()
         if tasks_list:
             task_text = "\n".join([f"Задача #{task.id}: {task.description}" for task in tasks_list])
             await msg.answer(f"Список задач:\n{task_text}")
@@ -150,13 +159,10 @@ async def list_responses(msg: types.Message):
             await msg.answer("Задача не найдена.")
             return
 
-        responses = await db.execute(Response.select().filter(Response.task_id == task.id))
+        responses = await db.execute(select(Response).filter(Response.task_id == task.id))
         responses_list = responses.fetchall()
         if responses_list:
             response_text = "\n".join([f"Отклик от пользователя #{response.user_id}" for response in responses_list])
             await msg.answer(f"Отклики на задачу #{task_id}:\n{response_text}")
         else:
             await msg.answer("Нет откликов на эту задачу.")
-
-
-
