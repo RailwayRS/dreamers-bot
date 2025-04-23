@@ -66,3 +66,4 @@ class Response(Base):
     task: Mapped["Task"] = relationship("Task", back_populates="responses")  # Связь с задачей
     user: Mapped["User"] = relationship("User", back_populates="responses")  # Связь с пользователем, который откликнулся
 
+
