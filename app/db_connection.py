@@ -16,6 +16,23 @@ session = Session()
 
 # Проверка соединения и создание всех таблиц, если их нет
 Base.metadata.create_all(bind=engine)
+from models import User, Role, Task
+
+# Создание нового пользователя
+new_user = User(tg_id=12345, role=Role.DREAMER)
+
+# Добавляем нового пользователя в сессию
+session.add(new_user)
+session.commit()
+
+# Создание задачи для этого пользователя
+new_task = Task(description="Создать новое событие", creator=new_user)
+
+# Добавляем задачу в сессию
+session.add(new_task)
+session.commit()
+
+print("Пользователь и задача добавлены в базу данных!")
 
 # Проверка таблиц в базе данных
 from sqlalchemy import inspect
